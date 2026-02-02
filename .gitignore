@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node (none here but common)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local artifacts (in compose we mount a volume to /data; but keep local clean)
+artifacts/

@@ -1,15 +1,10 @@
-# Integrate DriftQ into your app (Template B: exactly-once side effects) 🧩
+# Integrate DriftQ into your app (Template B: exactly-once side effects)
 
-You watched the side-effects demo and thought:
-
-> "Ok cool… but how do I add this to *my* app without wrecking everything?"
-
-This is the practical answer.
+You watched the side-effects demo and thought: how do I add this to *my* app without wrecking everything? This is the practical answer.
 
 Heads up: this repo is a focused starter. For the full DriftQ engine + latest updates:
 https://github.com/driftq-org/DriftQ-Core
 
----
 
 ## The mental model (don’t overthink it)
 
@@ -29,8 +24,6 @@ Client/UI/cron  ->  API (FastAPI)  ->  DriftQ (commands topic)
                                (LLMs / webhooks / DB / payments)
 ```
 
----
-
 ## What "exactly-once side effects" actually means here
 
 Real world: retries happen. Crashes happen. Networks lie.
@@ -47,7 +40,6 @@ Exactly-once side effects means:
 - The step might be *attempted* multiple times
 - But the **external action** should only happen once per business key
 
----
 
 ## The core trick (copy/paste into your brain)
 
@@ -65,8 +57,6 @@ Then your worker does:
 3) If no → do it, then mark done
 
 That’s it.
-
----
 
 ## Minimal integration checklist
 
@@ -106,7 +96,6 @@ SQLite is fine to start.
 In prod you can move to Postgres/Redis/etc. The pattern stays the same:
 **a UNIQUE key that proves "already done".**
 
----
 
 ## Common gotchas (read these or suffer later)
 
@@ -125,7 +114,6 @@ In prod you can move to Postgres/Redis/etc. The pattern stays the same:
 - **Don’t make your API the workflow engine.**
   Keep request handlers thin. Push durable behavior into DriftQ + worker.
 
----
 
 ## If you want the full engine
 

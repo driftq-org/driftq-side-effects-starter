@@ -1,29 +1,41 @@
-# DriftQ Side-Effects Starter (idempotency + safe retries) 🧨✅
+# DriftQ Side-Effects Starter (idempotency + safe retries)
 
 This repo is a **production-ish** starter that proves a real claim:
 
-> **Retries won’t duplicate side effects.**
-> Even if the worker crashes mid-step and DriftQ redelivers the message.
+> **Retries won’t duplicate side effects** — even if the worker crashes mid-step and DriftQ redelivers the message.
 
-It’s meant for engineers who already have a Next.js + FastAPI app and are thinking:
-**"ok cool… but how do I stop double-charging / double-webhooking when retries happen?"**
+It’s for engineers building real systems (payments, webhooks, LLM calls, tickets) who are asking:
+**“How do I prevent double-charging / double-webhooking when retries happen?”**
 
-✅ That’s what this repo shows.
+✅ This repo shows one clean pattern: **durable queue + idempotent worker + exactly-once markers**.
 
----
 
-## What this template proves (in plain English)
+## What you get
 
-- **DriftQ** is the durable middle layer (commands + events live there)
-- **Worker** is where the "real work" happens (LLM calls, webhooks, DB writes, Jira tickets, etc.)
-- The worker can crash or retry… and **your side effect still happens exactly once**
-- We keep a **SQLite side-effect store** that records "already done" so duplicates get skipped
+- **DriftQ** as the durable middle layer (commands/events live there)
+- A thin **API** that creates “runs” and publishes commands to DriftQ
+- A **worker** that:
+  - consumes commands (with redelivery)
+  - executes the “side effect”
+  - records an **exactly-once marker** in a SQLite store so duplicates get skipped
+  - writes a simple “proof artifact” file you can eyeball
 
----
 
-## Quickstart (one command) 🔥
+## Architecture
+![DriftQ Starter data flow](docs/flowchart.png)
 
-From repo root:
+The key: the worker is safe to retry because it checks/records a stable **effect_id** before doing the side effect.
+
+
+## Quickstart 🔥
+
+### Option A: Make (recommended)
+
+```bash
+make up
+```
+
+### Option B: Python scripts (works everywhere)
 
 ```bash
 python scripts/dev_up.py --detached
@@ -32,29 +44,34 @@ python scripts/dev_up.py --detached
 When it’s up:
 
 - **API docs:** http://localhost:8000/docs
+- **API health:** http://localhost:8000/healthz
 - **DriftQ health:** http://localhost:8080/v1/healthz
 
 Logs:
 
 ```bash
+make worker-logs
+# or:
 docker compose logs -f worker
 ```
 
 Stop:
 
 ```bash
+make down
+# or:
 python scripts/dev_down.py
 ```
 
 Wipe everything (including DriftQ WAL + SQLite store):
 
 ```bash
+make wipe
+# or:
 python scripts/dev_down.py --wipe --yes
 ```
 
----
-
-## The two demos (do these in order)
+## The two demos (run these in order)
 
 ### 1) Happy path with a real retry (no chaos)
 
@@ -68,13 +85,13 @@ What you should see in worker logs:
 - attempt 0: fails (before side effect)
 - attempt 1: side effect runs, store marked **done**, run completes
 
-Then hit debug endpoints:
+Debug endpoints:
 - side effect rows: http://localhost:8000/debug/side-effects
 - artifacts list: http://localhost:8000/debug/artifacts
 
 ### 2) Chaos mode: crash mid-step (the scary one)
 
-This is the "killer demo".
+This is the “killer demo”.
 
 It does the side effect, then the worker **crashes on purpose before ack**.
 DriftQ redelivers the command. The worker comes back up.
@@ -84,10 +101,8 @@ And the side effect does **NOT** run twice.
 make fail
 ```
 
-Again: check worker logs and the debug endpoints.
 You should still see **one** side effect row + **one** artifact file.
 
----
 
 ## How the idempotency story works
 
@@ -104,46 +119,54 @@ Examples:
 - `step_id` = `"charge_card"` (or `"send_webhook"` / `"create_ticket"`)
 - `business_key` = your real-world key (order_id / payment_intent / ticket_id)
 
-The worker stores that in SQLite. If the message comes again:
+The worker stores that `effect_id` in SQLite. If the message comes again:
 - row exists → we skip the side effect
 - row doesn’t exist → we run it and mark done
 
-### Why we do *not* put this logic inside the API
+### Why we keep this logic out of the API
 
-Because that turns into a mess fast:
+Putting “exactly-once” inside request handlers turns into pain fast:
 - ad-hoc retries everywhere
 - partial side effects
-- "did it run?" becomes a DB archaeology expedition
-- then you reinvent a workflow engine inside your request handlers 😬
+- “did it run?” becomes DB archaeology
+- you slowly reinvent a workflow engine in your HTTP layer 😬
 
 This repo keeps the API thin and puts durable behavior in:
 - **DriftQ** (commands/events + redelivery)
 - **worker** (retries + idempotent side effects)
 - **SQLite store** (exactly-once markers)
 
----
 
-## Where the "proof artifact" lives
 
-We write a "ticket file" (fake webhook/ticket) under `/data/artifacts/` (Docker volume).
-And we record a row in `/data/side_effects.sqlite`.
+## Where the proof lives
+
+We write a “ticket file” (fake webhook/ticket) under `/data/artifacts/` (Docker volume),
+and record a row in `/data/side_effects.sqlite`.
 
 So you get:
 - **DB proof** (authoritative)
 - **file proof** (easy to eyeball)
 
----
 
-## "How do I integrate this into my app?"
+## Useful knobs
+
+- `DRIFTQ_IMAGE` (docker-compose):
+  - default: `ghcr.io/driftq-org/driftq-core:latest`
+  - pin to a version if you want reproducible demos: `...:1.1.0`
+- `DRIFTQ_HTTP_URL` (api + worker): defaults to `http://driftq:8080` in compose
+- `WORKER_GROUP`: consumer group for the worker (defaults in compose)
+
+
+## Integrate into your app
 
 Read: `docs/INTEGRATE_IN_YOUR_APP.md`
-It’s the playbook for bolting this onto a real FastAPI + Next.js codebase.
 
----
+It’s the playbook for bolting this pattern onto a real app without turning your API into a workflow engine.
 
-## DriftQ-Core link (for the real engine)
+
+## DriftQ-Core (the engine)
 
 This starter is intentionally focused and tiny-ish.
-For the actual engine + roadmap + latest changes:
+For the engine + roadmap + latest changes:
 
 https://github.com/driftq-org/DriftQ-Core

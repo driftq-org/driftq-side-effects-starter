@@ -1,0 +1,39 @@
+services:
+  driftq:
+    image: ${DRIFTQ_IMAGE:-ghcr.io/driftq-org/driftq-core:latest}
+    ports:
+      - "8080:8080"
+    volumes:
+      - driftq_wal:/data
+
+  api:
+    build: ./api
+    environment:
+      - DRIFTQ_HTTP_URL=http://driftq:8080
+      - SIDEFX_DB_PATH=/data/side_effects.sqlite
+      - ARTIFACTS_DIR=/data/artifacts
+      - ALLOW_ORIGINS=http://localhost:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - sidefx_data:/data
+    depends_on:
+      - driftq
+
+  worker:
+    build: ./worker
+    environment:
+      - DRIFTQ_HTTP_URL=http://driftq:8080
+      - SIDEFX_DB_PATH=/data/side_effects.sqlite
+      - ARTIFACTS_DIR=/data/artifacts
+      - WORKER_GROUP=sidefx-worker
+      - LOG_LEVEL=info
+    volumes:
+      - sidefx_data:/data
+    depends_on:
+      - driftq
+    restart: unless-stopped
+
+volumes:
+  driftq_wal:
+  sidefx_data:

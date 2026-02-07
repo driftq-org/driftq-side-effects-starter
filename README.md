@@ -43,9 +43,9 @@ python scripts/dev_up.py --detached
 
 When it’s up:
 
-- **API docs:** http://localhost:8000/docs
-- **API health:** http://localhost:8000/healthz
-- **DriftQ health:** http://localhost:8080/v1/healthz
+- **API docs:** http://localhost:8000/docs (Codespaces: use forwarded URL for port 8000)
+- **API health:** http://localhost:8000/healthz (Codespaces: use forwarded URL for port 8000)
+- **DriftQ health:** http://localhost:8080/v1/healthz (Codespaces: use forwarded URL for port 8080)
 
 Logs:
 
@@ -86,8 +86,10 @@ What you should see in worker logs:
 - attempt 1: side effect runs, store marked **done**, run completes
 
 Debug endpoints:
-- side effect rows: http://localhost:8000/debug/side-effects
-- artifacts list: http://localhost:8000/debug/artifacts
+- side effect rows: http://localhost:8000/debug/side-effects (Codespaces: use forwarded URL for port 8000)
+- artifacts list: http://localhost:8000/debug/artifacts (Codespaces: use forwarded URL for port 8000)
+
+Note: Use the same base URL as your API. In Codespaces, that means the forwarded port 8000 URL GitHub shows in the Ports panel (not `localhost`).
 
 ### 2) Chaos mode: crash mid-step (the scary one)
 

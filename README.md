@@ -9,7 +9,6 @@ It’s for engineers building real systems (payments, webhooks, LLM calls, ticke
 
 ✅ This repo shows one clean pattern: **durable queue + idempotent worker + exactly-once markers**.
 
----
 
 ## What you get
 
@@ -21,18 +20,12 @@ It’s for engineers building real systems (payments, webhooks, LLM calls, ticke
   - records an **exactly-once marker** in a SQLite store so duplicates get skipped
   - writes a simple “proof artifact” file you can eyeball
 
----
 
-## Architecture (30 seconds)
-
-```
-client → API (/runs) → DriftQ (topic: sidefx.commands) → worker → side_effects.sqlite + /data/artifacts
-                                  ↑ redelivery on crash / no-ack  ────────────────────────────────┘
-```
+## Architecture
+![DriftQ Starter data flow](docs/flowchart.png)
 
 The key: the worker is safe to retry because it checks/records a stable **effect_id** before doing the side effect.
 
----
 
 ## Quickstart 🔥
 
@@ -78,8 +71,6 @@ make wipe
 python scripts/dev_down.py --wipe --yes
 ```
 
----
-
 ## The two demos (run these in order)
 
 ### 1) Happy path with a real retry (no chaos)
@@ -112,7 +103,6 @@ make fail
 
 You should still see **one** side effect row + **one** artifact file.
 
----
 
 ## How the idempotency story works
 
@@ -146,7 +136,7 @@ This repo keeps the API thin and puts durable behavior in:
 - **worker** (retries + idempotent side effects)
 - **SQLite store** (exactly-once markers)
 
----
+
 
 ## Where the proof lives
 
@@ -157,7 +147,6 @@ So you get:
 - **DB proof** (authoritative)
 - **file proof** (easy to eyeball)
 
----
 
 ## Useful knobs
 
@@ -167,7 +156,6 @@ So you get:
 - `DRIFTQ_HTTP_URL` (api + worker): defaults to `http://driftq:8080` in compose
 - `WORKER_GROUP`: consumer group for the worker (defaults in compose)
 
----
 
 ## Integrate into your app
 
@@ -175,7 +163,6 @@ Read: `docs/INTEGRATE_IN_YOUR_APP.md`
 
 It’s the playbook for bolting this pattern onto a real app without turning your API into a workflow engine.
 
----
 
 ## DriftQ-Core (the engine)
 

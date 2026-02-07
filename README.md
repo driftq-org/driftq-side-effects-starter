@@ -89,6 +89,8 @@ Debug endpoints:
 - side effect rows: http://localhost:8000/debug/side-effects
 - artifacts list: http://localhost:8000/debug/artifacts
 
+Note: Use the same base URL as your API. In Codespaces, that means the forwarded port 8000 URL GitHub shows in the Ports panel (not `localhost`).
+
 ### 2) Chaos mode: crash mid-step (the scary one)
 
 This is the “killer demo”.
